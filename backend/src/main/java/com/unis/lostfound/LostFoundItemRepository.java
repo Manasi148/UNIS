@@ -34,4 +34,5 @@ public interface LostFoundItemRepository extends JpaRepository<LostFoundItem, Lo
 
     long countByItemType(String itemType);
     long countByStatus(String status);
+    long countByItemTypeAndStatus(String itemType, String status);
 }

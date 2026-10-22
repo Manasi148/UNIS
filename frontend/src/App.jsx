@@ -69,6 +69,8 @@ export default function App() {
                   <Route path="/lost-found" element={<LostFoundListPage />} />
                   <Route path="/lost-found/new" element={<LostFoundCreatePage />} />
                   <Route path="/lost-found/:id" element={<LostFoundDetailPage />} />
+                  <Route path="/admin/lost-found" element={<LostFoundListPage />} />
+                  <Route path="/admin/lost-found/claims" element={<LostFoundListPage defaultTab="claims" />} />
 
                   {/* Announcements */}
                   <Route path="/announcements" element={<AnnouncementsPage />} />
@@ -76,6 +78,14 @@ export default function App() {
                   {/* Student Management / Approvals (Admin & Department Head) */}
                   <Route
                     path="/students"
+                    element={
+                      <ProtectedRoute allowedRoles={['ADMIN', 'DEPARTMENT_HEAD']} />
+                    }
+                  >
+                    <Route index element={<StudentManagementPage />} />
+                  </Route>
+                  <Route
+                    path="/admin/students"
                     element={
                       <ProtectedRoute allowedRoles={['ADMIN', 'DEPARTMENT_HEAD']} />
                     }

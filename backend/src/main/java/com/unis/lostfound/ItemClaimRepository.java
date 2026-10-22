@@ -24,4 +24,5 @@ public interface ItemClaimRepository extends JpaRepository<ItemClaim, Long> {
 
     boolean existsByItemIdAndClaimantId(Long itemId, Long claimantId);
     long countByClaimStatus(String claimStatus);
+    long countByItemId(Long itemId);
 }

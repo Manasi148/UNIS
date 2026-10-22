@@ -1,5 +1,11 @@
 package com.unis.analytics;
 
+import com.unis.lostfound.LostFoundDto;
+import com.unis.ticket.TicketDto;
+import com.unis.user.UserDto;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +15,7 @@ public class AnalyticsDto {
         private long totalTickets;
         private long openTickets;
         private long inProgressTickets;
+        private long openOrInProgressTickets;
         private long resolvedTickets;
         private long closedTickets;
         private long overdueTickets;
@@ -17,6 +24,24 @@ public class AnalyticsDto {
         private long totalUsers;
         private long totalDepartments;
         private long lostFoundItemsCount;
+
+        // Admin-specific practical metrics
+        private long totalStudents;
+        private long approvedStudents;
+        private long pendingStudents;
+        private long rejectedStudents;
+        private long inactiveStudents;
+
+        private long activeLostItemsCount;
+        private long activeFoundItemsCount;
+        private long totalActiveLostFoundCount;
+        private long pendingClaimsCount;
+        private long resolvedLostFoundCount;
+
+        private Map<String, Long> ticketStatusCounts = new HashMap<>();
+        private List<UserDto> recentPendingStudents = new ArrayList<>();
+        private List<TicketDto> recentTickets = new ArrayList<>();
+        private List<LostFoundDto> recentLostFound = new ArrayList<>();
 
         public OverviewStats() {
         }
@@ -29,6 +54,9 @@ public class AnalyticsDto {
 
         public long getInProgressTickets() { return inProgressTickets; }
         public void setInProgressTickets(long inProgressTickets) { this.inProgressTickets = inProgressTickets; }
+
+        public long getOpenOrInProgressTickets() { return openOrInProgressTickets; }
+        public void setOpenOrInProgressTickets(long openOrInProgressTickets) { this.openOrInProgressTickets = openOrInProgressTickets; }
 
         public long getResolvedTickets() { return resolvedTickets; }
         public void setResolvedTickets(long resolvedTickets) { this.resolvedTickets = resolvedTickets; }
@@ -53,6 +81,48 @@ public class AnalyticsDto {
 
         public long getLostFoundItemsCount() { return lostFoundItemsCount; }
         public void setLostFoundItemsCount(long lostFoundItemsCount) { this.lostFoundItemsCount = lostFoundItemsCount; }
+
+        public long getTotalStudents() { return totalStudents; }
+        public void setTotalStudents(long totalStudents) { this.totalStudents = totalStudents; }
+
+        public long getApprovedStudents() { return approvedStudents; }
+        public void setApprovedStudents(long approvedStudents) { this.approvedStudents = approvedStudents; }
+
+        public long getPendingStudents() { return pendingStudents; }
+        public void setPendingStudents(long pendingStudents) { this.pendingStudents = pendingStudents; }
+
+        public long getRejectedStudents() { return rejectedStudents; }
+        public void setRejectedStudents(long rejectedStudents) { this.rejectedStudents = rejectedStudents; }
+
+        public long getInactiveStudents() { return inactiveStudents; }
+        public void setInactiveStudents(long inactiveStudents) { this.inactiveStudents = inactiveStudents; }
+
+        public long getActiveLostItemsCount() { return activeLostItemsCount; }
+        public void setActiveLostItemsCount(long activeLostItemsCount) { this.activeLostItemsCount = activeLostItemsCount; }
+
+        public long getActiveFoundItemsCount() { return activeFoundItemsCount; }
+        public void setActiveFoundItemsCount(long activeFoundItemsCount) { this.activeFoundItemsCount = activeFoundItemsCount; }
+
+        public long getTotalActiveLostFoundCount() { return totalActiveLostFoundCount; }
+        public void setTotalActiveLostFoundCount(long totalActiveLostFoundCount) { this.totalActiveLostFoundCount = totalActiveLostFoundCount; }
+
+        public long getPendingClaimsCount() { return pendingClaimsCount; }
+        public void setPendingClaimsCount(long pendingClaimsCount) { this.pendingClaimsCount = pendingClaimsCount; }
+
+        public long getResolvedLostFoundCount() { return resolvedLostFoundCount; }
+        public void setResolvedLostFoundCount(long resolvedLostFoundCount) { this.resolvedLostFoundCount = resolvedLostFoundCount; }
+
+        public Map<String, Long> getTicketStatusCounts() { return ticketStatusCounts; }
+        public void setTicketStatusCounts(Map<String, Long> ticketStatusCounts) { this.ticketStatusCounts = ticketStatusCounts; }
+
+        public List<UserDto> getRecentPendingStudents() { return recentPendingStudents; }
+        public void setRecentPendingStudents(List<UserDto> recentPendingStudents) { this.recentPendingStudents = recentPendingStudents; }
+
+        public List<TicketDto> getRecentTickets() { return recentTickets; }
+        public void setRecentTickets(List<TicketDto> recentTickets) { this.recentTickets = recentTickets; }
+
+        public List<LostFoundDto> getRecentLostFound() { return recentLostFound; }
+        public void setRecentLostFound(List<LostFoundDto> recentLostFound) { this.recentLostFound = recentLostFound; }
     }
 
     public static class ChartDataPoint {

@@ -4,6 +4,7 @@ import com.unis.department.Department;
 import com.unis.department.DepartmentRepository;
 import com.unis.location.CampusLocation;
 import com.unis.location.CampusLocationRepository;
+import com.unis.lostfound.ItemClaimRepository;
 import com.unis.lostfound.LostFoundItemRepository;
 import com.unis.ticket.Ticket;
 import com.unis.ticket.TicketPriority;
@@ -29,17 +30,20 @@ public class AnalyticsService {
     private final DepartmentRepository departmentRepository;
     private final CampusLocationRepository locationRepository;
     private final LostFoundItemRepository lostFoundItemRepository;
+    private final ItemClaimRepository claimRepository;
 
     public AnalyticsService(TicketRepository ticketRepository,
                             UserRepository userRepository,
                             DepartmentRepository departmentRepository,
                             CampusLocationRepository locationRepository,
-                            LostFoundItemRepository lostFoundItemRepository) {
+                            LostFoundItemRepository lostFoundItemRepository,
+                            ItemClaimRepository claimRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.locationRepository = locationRepository;
         this.lostFoundItemRepository = lostFoundItemRepository;
+        this.claimRepository = claimRepository;
     }
 
     @Transactional(readOnly = true)
@@ -61,8 +65,11 @@ public class AnalyticsService {
         }
 
         stats.setTotalTickets(scopedTickets.size());
-        stats.setOpenTickets(scopedTickets.stream().filter(t -> t.getStatus() == TicketStatus.SUBMITTED || t.getStatus() == TicketStatus.ASSIGNED).count());
-        stats.setInProgressTickets(scopedTickets.stream().filter(t -> t.getStatus() == TicketStatus.IN_PROGRESS).count());
+        long openTickets = scopedTickets.stream().filter(t -> t.getStatus() == TicketStatus.SUBMITTED || t.getStatus() == TicketStatus.ASSIGNED).count();
+        long inProgressTickets = scopedTickets.stream().filter(t -> t.getStatus() == TicketStatus.IN_PROGRESS).count();
+        stats.setOpenTickets(openTickets);
+        stats.setInProgressTickets(inProgressTickets);
+        stats.setOpenOrInProgressTickets(openTickets + inProgressTickets);
         stats.setResolvedTickets(scopedTickets.stream().filter(t -> t.getStatus() == TicketStatus.RESOLVED).count());
         stats.setClosedTickets(scopedTickets.stream().filter(t -> t.getStatus() == TicketStatus.CLOSED).count());
         stats.setOverdueTickets(scopedTickets.stream().filter(Ticket::isOverdue).count());
@@ -93,6 +100,51 @@ public class AnalyticsService {
         stats.setTotalUsers(userRepository.count());
         stats.setTotalDepartments(departmentRepository.count());
         stats.setLostFoundItemsCount(lostFoundItemRepository.count());
+
+        // Practical real student metrics
+        stats.setTotalStudents(userRepository.countByRole(Role.STUDENT));
+        stats.setApprovedStudents(userRepository.countByRoleAndApprovalStatus(Role.STUDENT, com.unis.user.ApprovalStatus.APPROVED));
+        stats.setPendingStudents(userRepository.countByRoleAndApprovalStatus(Role.STUDENT, com.unis.user.ApprovalStatus.PENDING));
+        stats.setRejectedStudents(userRepository.countByRoleAndApprovalStatus(Role.STUDENT, com.unis.user.ApprovalStatus.REJECTED));
+        stats.setInactiveStudents(userRepository.countByRoleAndActive(Role.STUDENT, false));
+
+        // Lost & Found practical metrics
+        long activeLost = lostFoundItemRepository.countByItemTypeAndStatus("LOST", "OPEN");
+        long activeFound = lostFoundItemRepository.countByItemTypeAndStatus("FOUND", "OPEN");
+        stats.setActiveLostItemsCount(activeLost);
+        stats.setActiveFoundItemsCount(activeFound);
+        stats.setTotalActiveLostFoundCount(activeLost + activeFound);
+        stats.setPendingClaimsCount(claimRepository.countByClaimStatus("PENDING"));
+        stats.setResolvedLostFoundCount(lostFoundItemRepository.countByStatus("RETURNED") + lostFoundItemRepository.countByStatus("RESOLVED"));
+
+        // Status counts breakdown map
+        Map<String, Long> statusCounts = new HashMap<>();
+        for (TicketStatus ts : TicketStatus.values()) {
+            statusCounts.put(ts.name(), scopedTickets.stream().filter(t -> t.getStatus() == ts).count());
+        }
+        stats.setTicketStatusCounts(statusCounts);
+
+        // Recent 5 pending students
+        List<User> pendingUsers = userRepository.findByApprovalStatus(com.unis.user.ApprovalStatus.PENDING).stream()
+                .filter(u -> u.getRole() == Role.STUDENT)
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .limit(5)
+                .collect(Collectors.toList());
+        stats.setRecentPendingStudents(pendingUsers.stream().map(com.unis.user.UserDto::fromEntity).collect(Collectors.toList()));
+
+        // Recent 5 tickets
+        List<Ticket> recentTicketsList = scopedTickets.stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .limit(5)
+                .collect(Collectors.toList());
+        stats.setRecentTickets(recentTicketsList.stream().map(com.unis.ticket.TicketDto::fromEntity).collect(Collectors.toList()));
+
+        // Recent 5 lost & found items
+        List<com.unis.lostfound.LostFoundItem> recentLfList = lostFoundItemRepository.findAll().stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .limit(5)
+                .collect(Collectors.toList());
+        stats.setRecentLostFound(recentLfList.stream().map(com.unis.lostfound.LostFoundDto::fromEntity).collect(Collectors.toList()));
 
         return stats;
     }

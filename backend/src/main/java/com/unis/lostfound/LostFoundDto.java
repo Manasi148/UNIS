@@ -20,6 +20,7 @@ public class LostFoundDto {
     private String reportedByName;
     private String contactInfo;
     private Instant createdAt;
+    private long claimsCount;
 
     public LostFoundDto() {
     }
@@ -116,5 +117,13 @@ public class LostFoundDto {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public long getClaimsCount() {
+        return claimsCount;
+    }
+
+    public void setClaimsCount(long claimsCount) {
+        this.claimsCount = claimsCount;
     }
 }

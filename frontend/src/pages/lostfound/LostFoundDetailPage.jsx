@@ -56,18 +56,18 @@ export function LostFoundDetailPage() {
       setLoading(true);
       const [itemRes, matchRes] = await Promise.all([
         client.get(`/lost-found/${id}`),
-        client.get(`/lost-found/${id}/matches`),
+        client.get(`/lost-found/${id}/matches`).catch(() => ({ data: [] })),
       ]);
 
-      const itemData = itemRes.data.data;
+      const itemData = itemRes.data?.data || itemRes.data;
       setItem(itemData);
-      setMatches(matchRes.data.data || []);
+      setMatches(matchRes.data?.data || matchRes.data || []);
 
       // If user is staff/admin/head or the creator, fetch claims
-      if (role === 'STAFF' || role === 'ADMIN' || role === 'DEPARTMENT_HEAD' || user?.id === itemData.reporterId) {
+      if (role === 'STAFF' || role === 'ADMIN' || role === 'DEPARTMENT_HEAD' || user?.id === itemData.reportedById) {
         try {
           const claimsRes = await client.get(`/lost-found/${id}/claims`);
-          setClaims(claimsRes.data.data || []);
+          setClaims(claimsRes.data?.data || claimsRes.data || []);
         } catch (e) {
           console.warn('Could not load claims for item:', e);
         }
@@ -146,16 +146,17 @@ export function LostFoundDetailPage() {
   }
 
   const isReviewer = role === 'STAFF' || role === 'ADMIN' || role === 'DEPARTMENT_HEAD';
-  const isCreator = user?.id === item.reporterId;
-  const canFileClaim = item.listingType === 'FOUND' && item.status !== 'RETURNED' && !isCreator;
+  const isCreator = user?.id === (item.reportedById || item.reporterId);
+  const itemType = item.itemType || item.listingType || 'FOUND';
+  const canFileClaim = itemType === 'FOUND' && item.status !== 'RETURNED' && !isCreator;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto text-left animate-fade-in">
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <Link
           to="/lost-found"
-          className="text-xs font-semibold text-unis-slate hover:text-unis-forest flex items-center gap-1 transition-colors"
+          className="text-xs font-semibold text-unis-slate hover:text-unis-brand flex items-center gap-1 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Directory
@@ -176,12 +177,12 @@ export function LostFoundDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={`text-xs font-extrabold px-3 py-1 rounded-full ${
-                  item.listingType === 'FOUND'
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  itemType === 'FOUND'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
                 }`}
               >
-                {item.listingType}
+                {itemType}
               </span>
 
               <span className="text-xs font-bold text-unis-slate px-2.5 py-0.5 rounded bg-stone-100 dark:bg-unis-dark-elevated">
@@ -190,8 +191,8 @@ export function LostFoundDetailPage() {
 
               <span
                 className={`text-xs font-bold px-2.5 py-0.5 rounded ${
-                  item.status === 'RETURNED'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                  item.status === 'RETURNED' || item.status === 'RESOLVED'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
                     : 'bg-stone-100 text-stone-700 dark:bg-unis-dark-card dark:text-stone-300'
                 }`}
               >
@@ -210,23 +211,23 @@ export function LostFoundDetailPage() {
           <div>
             <span className="text-unis-slate text-[11px] block font-medium">Location</span>
             <span className="font-bold text-unis-ink dark:text-unis-dark-text flex items-center gap-1 mt-0.5">
-              <MapPin className="w-3.5 h-3.5 text-unis-forest" />
-              {item.locationFound || 'Campus Grounds'}
+              <MapPin className="w-3.5 h-3.5 text-unis-brand" />
+              {item.locationName || item.locationDescription || item.locationFound || 'Campus Grounds'}
             </span>
           </div>
 
           <div>
-            <span className="text-unis-slate text-[11px] block font-medium">Date</span>
+            <span className="text-unis-slate text-[11px] block font-medium">Date Occurred</span>
             <span className="font-bold text-unis-ink dark:text-unis-dark-text flex items-center gap-1 mt-0.5">
-              <Calendar className="w-3.5 h-3.5 text-unis-forest" />
-              {new Date(item.dateFound || item.createdAt).toLocaleDateString()}
+              <Calendar className="w-3.5 h-3.5 text-unis-brand" />
+              {item.dateOccurred || item.dateFound || new Date(item.createdAt).toLocaleDateString()}
             </span>
           </div>
 
           <div>
             <span className="text-unis-slate text-[11px] block font-medium">Color / Finish</span>
             <span className="font-bold text-unis-ink dark:text-unis-dark-text flex items-center gap-1 mt-0.5">
-              <Palette className="w-3.5 h-3.5 text-unis-forest" />
+              <Palette className="w-3.5 h-3.5 text-unis-brand" />
               {item.color || 'Unspecified'}
             </span>
           </div>
@@ -234,8 +235,8 @@ export function LostFoundDetailPage() {
           <div>
             <span className="text-unis-slate text-[11px] block font-medium">Listed By</span>
             <span className="font-bold text-unis-ink dark:text-unis-dark-text flex items-center gap-1 mt-0.5">
-              <User className="w-3.5 h-3.5 text-unis-forest" />
-              {item.reporterName}
+              <User className="w-3.5 h-3.5 text-unis-brand" />
+              {item.reportedByName || item.reporterName || 'Registered User'}
             </span>
           </div>
         </div>
@@ -267,43 +268,47 @@ export function LostFoundDetailPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {matches.map((m) => (
-              <div
-                key={m.id}
-                className="p-4 bg-white dark:bg-unis-dark-card rounded-xl border border-unis-border dark:border-unis-dark-border space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
-                      m.listingType === 'FOUND'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}
-                  >
-                    {m.listingType}
-                  </span>
-                  <span className="text-xs font-extrabold text-unis-forest dark:text-unis-dark-forest bg-unis-highlight dark:bg-unis-dark-elevated px-2 py-0.5 rounded-full">
-                    {m.matchScore}% Match
-                  </span>
+            {matches.map((m) => {
+              const candId = m.candidateId || m.id;
+              const candType = m.itemType || m.listingType || 'ITEM';
+              return (
+                <div
+                  key={candId}
+                  className="p-4 bg-white dark:bg-unis-dark-card rounded-xl border border-unis-border dark:border-unis-dark-border space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                        candType === 'FOUND'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                      }`}
+                    >
+                      {candType}
+                    </span>
+                    <span className="text-xs font-extrabold text-unis-brand bg-unis-blue-light dark:bg-unis-dark-highlight px-2 py-0.5 rounded-full">
+                      {m.matchScore}% Match
+                    </span>
+                  </div>
+
+                  <h4 className="text-xs font-bold text-unis-ink dark:text-unis-dark-text line-clamp-1">
+                    {m.title}
+                  </h4>
+
+                  <p className="text-[11px] text-unis-slate dark:text-unis-dark-muted leading-relaxed">
+                    Reason: {m.explanation || m.matchExplanation}
+                  </p>
+
+                  <div className="pt-2 flex justify-end">
+                    <Link to={`/lost-found/${candId}`}>
+                      <Button size="sm" variant="outline" className="text-xs">
+                        Inspect Item Listing →
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-
-                <h4 className="text-xs font-bold text-unis-ink dark:text-unis-dark-text line-clamp-1">
-                  {m.title}
-                </h4>
-
-                <p className="text-[11px] text-unis-slate dark:text-unis-dark-muted leading-relaxed">
-                  Reason: {m.matchExplanation}
-                </p>
-
-                <div className="pt-2 flex justify-end">
-                  <Link to={`/lost-found/${m.id}`}>
-                    <Button size="sm" variant="outline" className="text-xs">
-                      Inspect Item Listing →
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}
@@ -312,7 +317,7 @@ export function LostFoundDetailPage() {
       {claims.length > 0 && (
         <Card className="p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-unis-forest dark:text-unis-dark-forest" />
+            <ShieldCheck className="w-5 h-5 text-unis-brand" />
             <div>
               <h3 className="text-base font-bold text-unis-ink dark:text-unis-dark-text">
                 Ownership Claims Queue ({claims.length})
@@ -324,86 +329,85 @@ export function LostFoundDetailPage() {
           </div>
 
           <div className="space-y-3">
-            {claims.map((c) => (
-              <div
-                key={c.id}
-                className="p-4 rounded-xl border border-unis-border dark:border-unis-dark-border bg-stone-50 dark:bg-unis-dark-elevated space-y-2"
-              >
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-unis-ink dark:text-unis-dark-text">
-                      Claimant: {c.claimantName}
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        c.status === 'APPROVED'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : c.status === 'REJECTED'
-                          ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {c.status}
+            {claims.map((c) => {
+              const currentClaimStatus = c.claimStatus || c.status || 'PENDING';
+              return (
+                <div
+                  key={c.id}
+                  className="p-4 rounded-xl border border-unis-border dark:border-unis-dark-border bg-stone-50 dark:bg-unis-dark-elevated space-y-2"
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-unis-ink dark:text-unis-dark-text">
+                        Claimant: {c.claimantName || 'Student'}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          currentClaimStatus === 'APPROVED'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : currentClaimStatus === 'REJECTED'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {currentClaimStatus}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-unis-slate">
+                      {new Date(c.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <span className="text-[10px] text-unis-slate">
-                    {new Date(c.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
 
-                <div className="text-xs space-y-1">
-                  <div>
-                    <span className="font-semibold text-unis-slate text-[11px]">Identifying Statement: </span>
-                    <span className="text-unis-ink dark:text-unis-dark-text">{c.claimDescription}</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-unis-slate text-[11px]">Secret Verification Proof: </span>
-                    <span className="text-unis-ink dark:text-unis-dark-text font-mono bg-white dark:bg-unis-dark-card px-2 py-0.5 rounded border border-unis-border">
-                      {c.proofDetails}
-                    </span>
-                  </div>
-                  {c.reviewNotes && (
+                  <div className="text-xs space-y-1">
                     <div>
-                      <span className="font-semibold text-unis-slate text-[11px]">Moderator Decision Note: </span>
-                      <span className="text-unis-slate italic">{c.reviewNotes}</span>
+                      <span className="font-semibold text-unis-slate text-[11px]">Secret Verification Proof: </span>
+                      <span className="text-unis-ink dark:text-unis-dark-text font-mono bg-white dark:bg-unis-dark-card px-2 py-0.5 rounded border border-unis-border">
+                        {c.proofDetails || c.claimDescription}
+                      </span>
+                    </div>
+                    {c.reviewNotes && (
+                      <div>
+                        <span className="font-semibold text-unis-slate text-[11px]">Moderator Decision Note: </span>
+                        <span className="text-unis-slate italic">{c.reviewNotes}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {isReviewer && currentClaimStatus === 'PENDING' && (
+                    <div className="pt-2 flex justify-end gap-2 border-t border-unis-border dark:border-unis-dark-border">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-rose-600 border-rose-300"
+                        onClick={() => {
+                          setSelectedClaim(c);
+                          setReviewDecision('REJECTED');
+                          setReviewNotes('');
+                          setReviewModalOpen(true);
+                        }}
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-1" />
+                        Reject Claim
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        className="bg-emerald-700 hover:bg-emerald-800"
+                        onClick={() => {
+                          setSelectedClaim(c);
+                          setReviewDecision('APPROVED');
+                          setReviewNotes('');
+                          setReviewModalOpen(true);
+                        }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                        Approve & Mark Returned
+                      </Button>
                     </div>
                   )}
                 </div>
-
-                {isReviewer && c.status === 'PENDING' && (
-                  <div className="pt-2 flex justify-end gap-2 border-t border-unis-border dark:border-unis-dark-border">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-rose-600 border-rose-300"
-                      onClick={() => {
-                        setSelectedClaim(c);
-                        setReviewDecision('REJECTED');
-                        setReviewNotes('');
-                        setReviewModalOpen(true);
-                      }}
-                    >
-                      <XCircle className="w-3.5 h-3.5 mr-1" />
-                      Reject Claim
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      className="bg-emerald-700 hover:bg-emerald-800"
-                      onClick={() => {
-                        setSelectedClaim(c);
-                        setReviewDecision('APPROVED');
-                        setReviewNotes('');
-                        setReviewModalOpen(true);
-                      }}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                      Approve & Mark Returned
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}

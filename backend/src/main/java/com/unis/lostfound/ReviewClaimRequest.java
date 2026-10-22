@@ -20,6 +20,16 @@ public class ReviewClaimRequest {
         this.claimStatus = claimStatus;
     }
 
+    public String getStatus() {
+        return claimStatus;
+    }
+
+    public void setStatus(String status) {
+        if (this.claimStatus == null || this.claimStatus.isBlank()) {
+            this.claimStatus = status;
+        }
+    }
+
     public String getReviewNotes() {
         return reviewNotes;
     }

@@ -90,14 +90,58 @@ public class LostFoundService {
     public PagedResponse<LostFoundDto> getItems(String itemType, String category, String status,
                                                 Long reportedById, String search, Pageable pageable) {
         Page<LostFoundItem> page = itemRepository.filterItems(itemType, category, status, reportedById, search, pageable);
-        return PagedResponse.of(page.map(LostFoundDto::fromEntity));
+        return PagedResponse.of(page.map(item -> {
+            LostFoundDto dto = LostFoundDto.fromEntity(item);
+            dto.setClaimsCount(claimRepository.countByItemId(item.getId()));
+            return dto;
+        }));
     }
 
     @Transactional(readOnly = true)
     public LostFoundDto getItemById(Long id) {
         LostFoundItem item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + id));
-        return LostFoundDto.fromEntity(item);
+        LostFoundDto dto = LostFoundDto.fromEntity(item);
+        dto.setClaimsCount(claimRepository.countByItemId(item.getId()));
+        return dto;
+    }
+
+    @Transactional
+    public LostFoundDto updateItemStatus(Long id, String status, User actor) {
+        LostFoundItem item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + id));
+
+        if (actor.getRole() == Role.STUDENT && !item.getReportedBy().getId().equals(actor.getId())) {
+            throw new ForbiddenException("Not authorized to update status for this listing");
+        }
+
+        String validStatus = status != null ? status.trim().toUpperCase() : "OPEN";
+        item.setStatus(validStatus);
+        LostFoundItem saved = itemRepository.save(item);
+
+        auditService.log(actor, "UPDATE_LOST_FOUND_STATUS", "LOST_FOUND", saved.getId(),
+                "Updated status to " + validStatus + " for item: " + saved.getTitle(), null);
+
+        LostFoundDto dto = LostFoundDto.fromEntity(saved);
+        dto.setClaimsCount(claimRepository.countByItemId(saved.getId()));
+        return dto;
+    }
+
+    @Transactional
+    public void deleteItem(Long id, User actor) {
+        LostFoundItem item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + id));
+
+        if (actor.getRole() == Role.STUDENT && !item.getReportedBy().getId().equals(actor.getId())) {
+            throw new ForbiddenException("Not authorized to remove this listing");
+        }
+
+        auditService.log(actor, "DELETE_LOST_FOUND_ITEM", "LOST_FOUND", item.getId(),
+                "Deleted listing: " + item.getTitle(), null);
+
+        List<ItemClaim> claims = claimRepository.findByItemId(id);
+        claimRepository.deleteAll(claims);
+        itemRepository.delete(item);
     }
 
     @Transactional

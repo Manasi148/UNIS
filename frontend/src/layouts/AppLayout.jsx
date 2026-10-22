@@ -49,7 +49,7 @@ export function AppLayout() {
   ];
 
   const adminNavItems = [
-    { label: 'Student Approvals & Roster', path: '/students', icon: Users },
+    { label: 'Student Approvals & Roster', path: '/admin/students', icon: Users },
     { label: 'User Directory', path: '/admin/users', icon: Shield },
     { label: 'Departments', path: '/admin/departments', icon: Building2 },
     { label: 'Campus Locations', path: '/admin/locations', icon: MapPin },
@@ -58,7 +58,7 @@ export function AppLayout() {
   ];
 
   const deptHeadNavItems = [
-    { label: 'Student Approvals & Roster', path: '/students', icon: Users },
+    { label: 'Student Approvals & Roster', path: '/admin/students', icon: Users },
     { label: 'Campus Hotspots', path: '/hotspots', icon: Flame },
   ];
 

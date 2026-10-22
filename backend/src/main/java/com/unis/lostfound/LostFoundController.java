@@ -45,18 +45,43 @@ public class LostFoundController {
     @GetMapping("/lost-found")
     public ResponseEntity<ApiResponse<PagedResponse<LostFoundDto>>> getItems(
             @RequestParam(required = false) String itemType,
+            @RequestParam(required = false) String type,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long reportedById,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        String effectiveType = (itemType != null && !itemType.isBlank()) ? itemType : type;
+        if (effectiveType != null && effectiveType.equalsIgnoreCase("ALL")) effectiveType = null;
+        if (category != null && category.equalsIgnoreCase("ALL")) category = null;
+        if (status != null && status.equalsIgnoreCase("ALL")) status = null;
+
         return ResponseEntity.ok(ApiResponse.success(
-                lostFoundService.getItems(itemType, category, status, reportedById, search, pageable)));
+                lostFoundService.getItems(effectiveType, category, status, reportedById, search, pageable)));
     }
 
     @GetMapping("/lost-found/{id}")
     public ResponseEntity<ApiResponse<LostFoundDto>> getItemById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(lostFoundService.getItemById(id)));
+    }
+
+    @PatchMapping("/lost-found/{id}/status")
+    public ResponseEntity<ApiResponse<LostFoundDto>> updateItemStatus(
+            @PathVariable Long id,
+            @RequestParam String status,
+            @AuthenticationPrincipal CustomUserDetails authUser) {
+        User user = userService.getUserEntity(authUser.getId());
+        return ResponseEntity.ok(ApiResponse.success("Item status updated successfully",
+                lostFoundService.updateItemStatus(id, status, user)));
+    }
+
+    @DeleteMapping("/lost-found/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteItem(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails authUser) {
+        User user = userService.getUserEntity(authUser.getId());
+        lostFoundService.deleteItem(id, user);
+        return ResponseEntity.ok(ApiResponse.success("Listing deleted successfully", null));
     }
 
     @GetMapping("/lost-found/{id}/matches")

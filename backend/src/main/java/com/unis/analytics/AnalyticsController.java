@@ -32,12 +32,12 @@ public class AnalyticsController {
         return ResponseEntity.ok(ApiResponse.success(analyticsService.getOverviewStats(user)));
     }
 
-    @GetMapping("/tickets-by-category")
+    @GetMapping({"/tickets-by-category", "/categories"})
     public ResponseEntity<ApiResponse<List<AnalyticsDto.ChartDataPoint>>> getTicketsByCategory() {
         return ResponseEntity.ok(ApiResponse.success(analyticsService.getTicketsByCategory()));
     }
 
-    @GetMapping("/tickets-by-department")
+    @GetMapping({"/tickets-by-department", "/departments"})
     public ResponseEntity<ApiResponse<List<AnalyticsDto.ChartDataPoint>>> getTicketsByDepartment() {
         return ResponseEntity.ok(ApiResponse.success(analyticsService.getTicketsByDepartment()));
     }
